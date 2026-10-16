@@ -1,0 +1,23 @@
+# Local Deployment (for testing)
+[local]
+localhost ansible_connection=local
+
+# Development Servers
+[dev]
+
+# Staging Servers
+[staging]
+
+# Production Servers
+[production]
+
+# Group all WildFly servers together
+[wildfly:children]
+local
+dev
+staging
+production
+
+# Variables for all hosts
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3

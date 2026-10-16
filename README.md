@@ -1,78 +1,81 @@
-<!-- This should be the location of the title of the repository, normally the short name -->
-# repo-template
+# WildFly AI Demo
 
-<!-- Build Status, is a great thing to have at the top of your repository, it shows that you take your CI/CD as first class citizens -->
-<!-- [![Build Status](https://travis-ci.org/jjasghar/ibm-cloud-cli.svg?branch=master)](https://travis-ci.org/jjasghar/ibm-cloud-cli) -->
+Conversational AI REST API built with **WildFly 39**, **LangChain4j**, and **Ollama** (gemma:2b). Demonstrates enterprise Java integration with local LLM for text analysis and conversational responses.
 
-<!-- Not always needed, but a scope helps the user understand in a short sentance like below, why this repo exists -->
-## Scope
+## Output Response
 
-The purpose of this project is to provide a template for new open source repositories.
+<img width="1500" height="592" alt="Screenshot 2026-03-10 at 12 21 41 AM" src="https://github.com/user-attachments/assets/32b12a3c-7e82-4bec-a0b3-0f0f04ddb0bc" />
 
-<!-- A more detailed Usage or detailed explaination of the repository here -->
-## Usage
+## Architecture
 
-This repository contains some example best practices for open source repositories:
-
-* [LICENSE](LICENSE)
-* [README.md](README.md)
-* [CONTRIBUTING.md](CONTRIBUTING.md)
-* [MAINTAINERS.md](MAINTAINERS.md)
-* [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-<!-- A Changelog allows you to track major changes and things that happen, https://github.com/github-changelog-generator/github-changelog-generator can help automate the process -->
-* [CHANGELOG.md](CHANGELOG.md)
-
-> These are optional
-
-<!-- The following are OPTIONAL, but strongly suggested to have in your repository. -->
-* [dco.yml](.github/dco.yml) - This enables DCO bot for you, please take a look https://github.com/probot/dco for more details.
-* [travis.yml](.travis.yml) - This is a example `.travis.yml`, please take a look https://docs.travis-ci.com/user/tutorial/ for more details.
-
-These may be copied into a new or existing project to make it easier for developers not on a project team to collaborate.
-
-<!-- A notes section is useful for anything that isn't covered in the Usage or Scope. Like what we have below. -->
-## Notes
-
-**NOTE: While this boilerplate project uses the Apache 2.0 license, when
-establishing a new repo using this template, please use the
-license that was approved for your project.**
-
-**NOTE: This repository has been configured with the [DCO bot](https://github.com/probot/dco).
-When you set up a new repository that uses the Apache license, you should
-use the DCO to manage contributions. The DCO bot will help enforce that.
-Please contact one of the IBM GH Org stewards.**
-
-<!-- Questions can be useful but optional, this gives you a place to say, "This is how to contact this project maintainers or create PRs -->
-If you have any questions or issues you can create a new [issue here][issues].
-
-Pull requests are very welcome! Make sure your patches are well tested.
-Ideally create a topic branch for every separate change you make. For
-example:
-
-1. Fork the repo
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Added some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
-
-## License
-
-All source files must include a Copyright and License header. The SPDX license header is 
-preferred because it can be easily scanned.
-
-If you would like to see the detailed LICENSE click [here](LICENSE).
-
-```text
-#
-# Copyright IBM Corp. {Year project was created} - {Current Year}
-# SPDX-License-Identifier: Apache-2.0
-#
 ```
-## Authors
+src/main/java/com/demo/ai/
+├── Analyst.java         # AI service interface with conversational prompt
+├── AnalystService.java  # Ollama chat model integration (gemma:2b)
+├── DemoResource.java    # REST endpoint (JAX-RS)
+└── RestConfig.java      # REST configuration
 
-Optionally, you may include a list of authors, though this is redundant with the built-in
-GitHub list of contributors.
+ansible/
+├── site.yml             # Main playbook
+├── inventory/           # Server definitions
+└── group_vars/all.yml   # Configuration variables
+```
 
-- Author: New OpenSource IBMer <new-opensource-ibmer@ibm.com>
+## Quick Start
 
-[issues]: https://github.com/IBM/repo-template/issues/new
+### 1. Build
+```bash
+mvn clean package
+```
+
+### 2. Deploy with Ansible
+```bash
+ansible-galaxy collection install middleware_automation.wildfly
+cd ansible
+ansible-playbook -i inventory site.yml --tags deploy
+```
+
+### 3. Configure Ollama
+```bash
+# Set Ollama model (defaults to gemma:2b if not set)
+ssh cloud-user@<server> "sudo sed -i 's/OLLAMA_MODEL=.*/OLLAMA_MODEL=gemma:2b/' /etc/sysconfig/wildfly.conf && sudo systemctl restart wildfly"
+
+# Optional: Set Ollama base URL (defaults to http://localhost:11434)
+ssh cloud-user@<server> "sudo sed -i 's/OLLAMA_BASE_URL=.*/OLLAMA_BASE_URL=http://localhost:11434/' /etc/sysconfig/wildfly.conf && sudo systemctl restart wildfly"
+```
+
+### 4. Test
+```bash
+curl -X POST http://<server>:8380/ai-demo/api/demo/check \
+  -H "Content-Type: text/plain" \
+  -d "This product is amazing!"
+
+# Sample response:
+# Thank you for the positive feedback! As a helpful AI assistant,
+# I am always delighted to hear that my work is making a difference.
+# I am happy to provide any additional insights or answer any
+# questions you may have about the product.
+```
+
+## Configuration
+
+Edit `ansible/group_vars/all.yml`:
+```yaml
+wildfly_version: "39.0.0.Final"
+wildfly_port_http: 8380
+java_home: "/usr/lib/jvm/java-17-openjdk"
+```
+
+## Stack
+
+- **WildFly** 39.0.0.Final (Java 17)
+- **LangChain4j** 0.35.0
+- **Jakarta EE 10** (CDI, JAX-RS)
+- **Ollama** gemma:2b (configurable)
+
+## API
+
+**POST** `/ai-demo/api/demo/check`
+- **Content-Type:** `text/plain`
+- **Body:** Any text input
+- **Returns:** Conversational AI response using Ollama's gemma:2b model
